@@ -1,0 +1,87 @@
+format 74
+
+classcanvas 128002 class_ref 128002 // Client
+  class_drawing_mode default show_context_mode default show_stereotype_properties default
+  xyz 21 200 2000
+end
+usecasecanvas 128130 usecase_ref 128002 // DHCP Client
+  xyzwh 234 78 3005 64 32 label_xy 231 110
+end
+usecasecanvas 128258 usecase_ref 128130 // NTP Client
+  xyzwh 235 151 3005 64 32 label_xy 237 183
+end
+usecasecanvas 128386 usecase_ref 128258 // Create Socket
+  xyzwh 611 18 3005 64 32 label_xy 605 50
+end
+usecasecanvas 128514 usecase_ref 128386 // Connect to Server
+  xyzwh 616 86 3005 64 32 label_xy 599 118
+end
+usecasecanvas 128642 usecase_ref 128514 // Send Command
+  xyzwh 615 157 3005 64 32 label_xy 603 189
+end
+usecasecanvas 128770 usecase_ref 128642 // Receive Response
+  xyzwh 616 234 3005 64 32 label_xy 596 266
+end
+usecasecanvas 128898 usecase_ref 128770 // Dispatch
+  xyzwh 617 365 3005 64 32 label_xy 625 397
+end
+usecasecanvas 129026 usecase_ref 128898 // Communication
+  xyzwh 411 160 3005 64 32 label_xy 400 192
+end
+usecasecanvas 129154 usecase_ref 129026 // Handle Protocol
+  xyzwh 415 272 3005 64 32 label_xy 403 304
+end
+usecasecanvas 129282 usecase_ref 129154 // Input Process
+  xyzwh 416 385 3005 64 32 label_xy 411 417
+end
+usecasecanvas 129410 usecase_ref 129282 // Make a Command
+  xyzwh 621 300 3005 64 32 label_xy 604 332
+end
+usecasecanvas 129538 usecase_ref 129410 // Parsing Protocol
+  xyzwh 617 434 3005 64 32 label_xy 604 466
+end
+usecasecanvas 130562 usecase_ref 129538 // Super Client
+  xyzwh 133 218 3005 64 32 label_xy 131 250
+end
+classcanvas 131330 class_ref 128130 // InputDevices
+  class_drawing_mode default show_context_mode default show_stereotype_properties default
+  xyz 46 371 2000
+end
+usecasecanvas 131586 usecase_ref 129666 // Proc
+  xyzwh 412 498 3005 64 32 label_xy 431 530
+end
+usecasecanvas 132098 usecase_ref 129794 // Multiplexing
+  xyzwh 520 558 3005 64 32 label_xy 519 590
+end
+usecasecanvas 132226 usecase_ref 129922 // FSM
+  xyzwh 431 557 3005 64 32 label_xy 450 589
+end
+line 129666 --->
+  from ref 129026 z 3006 to ref 128386
+line 129794 --->
+  from ref 129026 z 3006 to ref 128514
+line 129922 --->
+  from ref 129026 z 3006 to ref 128642
+line 130050 --->
+  from ref 129026 z 3006 to ref 128770
+line 130178 --->
+  from ref 129154 z 3006 to ref 129410
+line 130306 --->
+  from ref 129154 z 3006 to ref 128898
+line 130434 --->
+  from ref 129154 z 3006 to ref 129538
+line 130690 --->
+  from ref 130562 z 3006 to ref 128130
+line 130818 --->
+  from ref 130562 z 3006 to ref 128258
+line 130946 --->
+  from ref 128130 z 3006 to ref 129026
+line 131074 --->
+  from ref 128130 z 3006 to ref 129154
+line 131202 --->
+  from ref 128130 z 3006 to ref 129282
+line 131458 --->
+  from ref 131330 z 3006 to ref 129282
+line 131970 --->
+  from ref 128002 z 3006 to ref 130562
+end
