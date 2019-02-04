@@ -28,11 +28,13 @@ class PosixSocketLib : public AbstractConnection
 {
 private:
 	int mSocketFD;
-	int mAddressType;
-	int mProtocolType;
+	int mAddressType;		//IPv4(0), IPv6(1)
+	int mProtocolType;	//TCP(0), UDP(1)
+	string mAddress;
+	int mPort;
 
 public:
-	PosixSocketLib() : mSocketFD(-1), mAddressType(0), mProtocolType(0)
+	PosixSocketLib() : mSocketFD(-1), mAddressType(0), mProtocolType(0), mAddress(), mPort(-1)
 	{
 
 	}
@@ -52,7 +54,7 @@ private:
 
 	int get_socket();
 	int set_socket();
-	int connect_socket(const char *address, int port);
+	int connect_socket(const char *address, int port, int proto_type);
 	int disconnect_socket();
 	int send_socket(const char *msg, int msgLen);
 	int receive_socket(char *msgBuf, int msgBufLen);

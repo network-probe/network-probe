@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 
+#include "../util/Debug.h"
 #include "PosixSocketLib.h"
 
 #include <poll.h>
@@ -32,13 +33,16 @@ int PosixSocketLib::create_socket()
 		//Todo: print error message
 		close_socket();
 	}
-	int sock = socket(AF_INET, SOCK_STREAM, 0);
+
+	int sock = socket(AF_INET, (mProtocolType == 0 ? SOCK_STREAM : SOCK_DGRAM), 0);
 	if(sock < 0)
 	{
 		//error
 		mSocketFD = -1;
 		return -1;
 	}
+
+	np_print("created socket = [%d]\n", sock);
 
 	mSocketFD = sock;
 	return 0;
@@ -64,16 +68,25 @@ int PosixSocketLib::set_socket()
 	return 0;
 }
 
-int PosixSocketLib::connect_socket(const char *address, int port)
+int PosixSocketLib::connect_socket(const char *address, int port, int proto_type)
 {
 	if(address == NULL || port < 0)
 	{
 		return -1;
 	}
+	mAddress = address;
+	mPort = port;
+	mProtocolType = proto_type;
 
 	if(create_socket() < 0)
 	{
 		return -1;
+	}
+
+	if(mProtocolType == 1)
+	{
+		//UDP
+		return 0;
 	}
 
 	struct sockaddr_in targetAddr;
@@ -101,8 +114,23 @@ int PosixSocketLib::send_socket(const char *msg, int msgLen)
 {
 	if(mSocketFD <= 0)
 		return -1;
+	int sentLen = 0;
+	if(mProtocolType == 0)
+	{
+		sentLen = send(mSocketFD, msg, msgLen, 0);
+	}
+	else
+	{
+		struct sockaddr_in dstAddr;
+		int addr_len = sizeof(dstAddr);
+		memset(&dstAddr, 0, addr_len);
+		dstAddr.sin_family = AF_INET;
+		dstAddr.sin_addr.s_addr = inet_addr(mAddress.c_str());
+		dstAddr.sin_port = htons(mPort);
 
-	int sentLen = send(mSocketFD, msg, msgLen, 0);
+		sentLen = sendto(mSocketFD, msg, msgLen, 0, (struct sockaddr *)&dstAddr, addr_len);
+	}
+
 	return sentLen;
 }
 
@@ -117,8 +145,7 @@ int PosixSocketLib::receive_socket(char *msgBuf, int msgBufLen)
 
 int PosixSocketLib::Connect(TConnection &conn)
 {
-	create_socket();
-	int ret = connect_socket(conn.GetAddress().c_str(), conn.GetPort());
+	int ret = connect_socket(conn.GetAddress().c_str(), conn.GetPort(), conn.GetConnType());
 	if(ret == 0)
 	{
 		SocketMultiplexing::GetInstance()->AddEvent(get_socket(), reinterpret_cast<PosixSocketLib&>(*this));
@@ -160,15 +187,19 @@ int PosixSocketLib::OnReceive()
 	{
 		fprintf(stderr, "Receive[%d]: %s", ret, testBuffer);
 		if(mCallbackInstance)
+		{
 			mCallbackInstance->OnReceive(testBuffer, ret);
+		}
 	}
 	else if(ret == 0)
 	{
 		//Disconnected
+		fprintf(stderr, "error [%s]\n", strerror(errno));
 		OnDisconnected();
 	}
 	else
 	{
+		fprintf(stderr, "error [%s]\n", strerror(errno));
 		//Error
 	}
 
@@ -219,7 +250,7 @@ int SocketMultiplexing::AddEvent(int sock, PosixSocketLib& instance)
 	}
 	else
 	{
-		mPosixSocketList.insert(map<int, PosixSocketLib&>::value_type(1, instance));
+		mPosixSocketList.insert(map<int, PosixSocketLib&>::value_type(sock, instance));
 		UpdateEvent(true);
 		return mPosixSocketList.size();
 	}
@@ -273,6 +304,7 @@ int SocketMultiplexing::GetPollFromEvent(void **pollStr)
 	map<int, PosixSocketLib&>::iterator iter = mPosixSocketList.begin();
 	for(; iter != mPosixSocketList.end(); ++iter)
 	{
+		np_print("fd=[%d]\n", iter->first);
 		p->fd = iter->first;
 		p->events = POLLIN;
 		p->revents = 0;

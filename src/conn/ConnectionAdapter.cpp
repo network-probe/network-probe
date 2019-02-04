@@ -6,6 +6,8 @@
  */
 
 #include <stdio.h>
+
+#include "../util/Debug.h"
 #include "ConnectionAdapter.h"
 
 
@@ -26,6 +28,7 @@ int ConnectionAdapter::OnSend()
 
 int ConnectionAdapter::OnReceive(char* buffer, int length)
 {
+	np_trace;
 	return 0;
 }
 
