@@ -50,7 +50,7 @@ private:
 
 public:
 	int OnSend();
-	int OnReceive(char* buffer, int length);
+	int OnReceive(unsigned char* buffer, int length);
 
 public:
 	int TryConnect(Connection &conn);

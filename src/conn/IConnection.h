@@ -19,7 +19,7 @@ public:
 	virtual int IReceive(TConnBuffer &connBuffer) = 0;
 
 	virtual int OnSend() = 0;
-	virtual int OnReceive(char* buffer, int length) = 0;
+	virtual int OnReceive(unsigned char* buffer, int length) = 0;
 };
 
 

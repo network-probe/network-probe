@@ -26,7 +26,7 @@ int ConnectionAdapter::OnSend()
 	return 0;
 }
 
-int ConnectionAdapter::OnReceive(char* buffer, int length)
+int ConnectionAdapter::OnReceive(unsigned char* buffer, int length)
 {
 	np_trace;
 	return 0;

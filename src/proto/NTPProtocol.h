@@ -12,19 +12,34 @@
 
 typedef struct _NTP_PROTOCOL_FORMAT
 {
+#if 1
 	u8 leap : 2;
 	u8 version: 3;
 	u8 mode: 3;
+#else
+	u8 li_vn_mode;
+#endif
 	u8 stratum;
 	u8 poll;
 	u8 rho;			//precision
 	u32 delta_r;		//root delay
 	u32 epsilon_r;	//root dispersion
 	u32 refid;
+#if 0
 	u64 reftime;	//reference timestamp
 	u64 T1;		//origin timestamp
 	u64 T2;		//receive timestamp
 	u64 T3;		//transmit timestamp
+#else
+	u32 reftime_s;
+	u32 reftime_f;
+	u32 origintime_s;
+	u32 origintime_f;
+	u32 receivetime_s;
+	u32 receivetime_f;
+	u32 transmittime_s;
+	u32 transmittime_f;
+#endif
 #if 0	//extension
 	u64 T4;
 	u64 keyid;
@@ -91,6 +106,7 @@ typedef enum
 +------+----------------------------------------------------------+
 */
 
+#define NTP_TIMESTAMP_DELTA 2208988800ull
 
 class NTPProtocol : public AbstractProtocol
 {
@@ -99,7 +115,9 @@ public:
 	virtual ~NTPProtocol();
 
 	int MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer);
-	int ParseData();
+	int ParseData(unsigned char *recv_buffer);
+	string Dump(unsigned char *buffer);
+	string PacketHeaderFormat();
 };
 
 

@@ -110,7 +110,7 @@ int PosixSocketLib::disconnect_socket()
 	return ret;
 }
 
-int PosixSocketLib::send_socket(const char *msg, int msgLen)
+int PosixSocketLib::send_socket(const unsigned char *msg, int msgLen)
 {
 	if(mSocketFD <= 0)
 		return -1;
@@ -134,7 +134,7 @@ int PosixSocketLib::send_socket(const char *msg, int msgLen)
 	return sentLen;
 }
 
-int PosixSocketLib::receive_socket(char *msgBuf, int msgBufLen)
+int PosixSocketLib::receive_socket(unsigned char *msgBuf, int msgBufLen)
 {
 	if(mSocketFD <= 0)
 		return -1;
@@ -181,7 +181,7 @@ int PosixSocketLib::Receive(TConnBuffer &buffer)
 
 int PosixSocketLib::OnReceive()
 {
-	char testBuffer[1024] = {0,};
+	unsigned char testBuffer[1024] = {0,};
 	int ret = receive_socket(testBuffer, 1024);
 	if(ret > 0)
 	{

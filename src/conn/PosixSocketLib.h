@@ -39,7 +39,7 @@ public:
 
 	}
 	PosixSocketLib(IConnection* connIntp) : AbstractConnection(connIntp),
-			mSocketFD(-1), mAddressType(0), mProtocolType(0)
+			mSocketFD(-1), mAddressType(0), mProtocolType(0), mPort(0)
 	{
 
 	}
@@ -56,8 +56,8 @@ private:
 	int set_socket();
 	int connect_socket(const char *address, int port, int proto_type);
 	int disconnect_socket();
-	int send_socket(const char *msg, int msgLen);
-	int receive_socket(char *msgBuf, int msgBufLen);
+	int send_socket(const unsigned char *msg, int msgLen);
+	int receive_socket(unsigned char *msgBuf, int msgBufLen);
 
 public:
 	int Connect(TConnection &conn);

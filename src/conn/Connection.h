@@ -58,13 +58,15 @@ struct Connection
 
 struct ConnBuffer
 {
-	const static int CONN_BUFFER_SIZE = 1024;
-	char *mBuffer;
+//	const static int CONN_BUFFER_SIZE = 1024;
+	unsigned char *mBuffer;
 	int mLength;
+	int mBufferSize;
 
-	ConnBuffer()
+	ConnBuffer(int buf_size)
 	{
-		mBuffer = new char[CONN_BUFFER_SIZE];
+		mBufferSize = buf_size;
+		mBuffer = new unsigned char[mBufferSize];
 		mLength = 0;
 	}
 	~ConnBuffer()
@@ -72,7 +74,7 @@ struct ConnBuffer
 		delete [] mBuffer;
 	}
 
-	char* GetBuffer() const
+	unsigned char* GetBuffer() const
 	{
 		return mBuffer;
 	}
@@ -97,12 +99,12 @@ struct ConnBuffer
 
 	const int GetMaxBufferSize() const
 	{
-		return CONN_BUFFER_SIZE;
+		return mBufferSize;
 	}
 
 	void ClearBuffer()
 	{
-		memset(mBuffer, 0, CONN_BUFFER_SIZE);
+		memset(mBuffer, 0, mBufferSize);
 	}
 };
 

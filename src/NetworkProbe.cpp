@@ -17,50 +17,52 @@
 using namespace std;
 
 
-void test_PosixSocketLib();
-void ntp_test(TConnBuffer &buffer);
+//void test_PosixSocketLib();
+void ntp_test();
 
 int main(void)
 {
 	cout << "Start >>>" << endl;
 
-	test_PosixSocketLib();
+	ntp_test();
 
 	return EXIT_SUCCESS;
 }
 
-void test_PosixSocketLib()
+void ntp_test()
 {
 	ConnectionAdapter *connAdapter = new ConnectionAdapter();
-	TConnection testConn;
-	testConn.SetAddress(string("216.239.35.0"));
-	testConn.SetPort(123);
-	testConn.SetConnType(CONN_UDP);
-	if(connAdapter->TryConnect(testConn) < 0)
+	TConnection connection;
+
+	connection.SetAddress(string("216.239.35.0"));
+	connection.SetPort(123);
+	connection.SetConnType(CONN_UDP);
+	if(connAdapter->TryConnect(connection) < 0)
 	{
 		cerr << "Connect Socket Error" << endl;
 		return;
 	}
 
-	TConnBuffer testBuffer;
-//	char testData[1024] = {0,};
-//	strncpy(testData, "Hello\n", strlen("Hello\n"));
-//	testBuffer.CopyData(testData, strlen(testData));
-	ntp_test(testBuffer);
-	sleep(1);
-	if(connAdapter->TrySend(testBuffer) == testBuffer.GetDataSize())
+	NTPProtocol *ntp = new NTPProtocol();
+	unsigned char *ntp_buffer = new unsigned char [sizeof(NTP_PROTOCOL_FORMAT)];
+	ntp->MakeCommand(NTP_1_XXX, ntp_buffer);
+
+	TConnBuffer buffer(sizeof(NTP_PROTOCOL_FORMAT));
+	buffer.CopyData(reinterpret_cast<char *>(ntp_buffer), sizeof(NTP_PROTOCOL_FORMAT));
+
+	if(connAdapter->TrySend(buffer) == buffer.GetDataSize())
 	{
-		cout << "Request: " << testBuffer.GetBuffer() << endl;
+		cout << "Request: " << buffer.GetBuffer() << endl;
 	}
 
-	testBuffer.ClearBuffer();
-
-//	int recvLen = connAdapter->TryReceive(testBuffer);
-//	if(recvLen < 0)
-//	{
-//		cerr << "Receive Error" << endl;
-//	}
-//	cout << "Reply: " << testBuffer.GetBuffer() << endl;
+	buffer.ClearBuffer();
+	int recvLen = connAdapter->TryReceive(buffer);
+	if(recvLen < 0)
+	{
+		cerr << "Receive Error" << endl;
+	}
+	cout << "Reply: " << buffer.GetBuffer() << endl;
+	ntp->ParseData(buffer.GetBuffer());
 
 	while(1)
 	{
@@ -72,37 +74,7 @@ void test_PosixSocketLib()
 		cerr << "Disconnect Socket Error" << endl;
 	}
 
-	/*
-	PosixSocketLib *testSocket = new PosixSocketLib();
-	if(testSocket->ConnectSocket((char *)("127.0.0.1"), 8001) < 0)
-	{
-		cerr << "Connect Socket Error" << endl;
-	}
-
-	string msg("Hello\n");
-	int sentLen = testSocket->SendSocket(msg.c_str(), msg.length());
-	if(sentLen == static_cast<int>(msg.length()))
-	{
-		cout << "Request: " << msg << endl;
-	}
-
-	char recvBuf[1024] = {0,};
-	int recvLen = testSocket->ReceiveSocket(recvBuf, 1024);
-	recvBuf[recvLen] = '\0';
-	cout << "Reply: " << recvBuf << endl;
-
-	if(testSocket->DisconnectSocket() < 0)
-	{
-		cerr << "Disconnect Socket Error" << endl;
-	}
-	*/
-}
-
-void ntp_test(TConnBuffer &buffer)
-{
-	NTPProtocol *ntp = new NTPProtocol();
-	unsigned char *ntp_buffer = new unsigned char [sizeof(NTP_PROTOCOL_FORMAT)];
-	ntp->MakeCommand(NTP_1_XXX, ntp_buffer);
-	buffer.CopyData(reinterpret_cast<char *>(ntp_buffer), sizeof(NTP_PROTOCOL_FORMAT));
 	delete [] ntp_buffer;
+	delete ntp;
+	delete connAdapter;
 }
