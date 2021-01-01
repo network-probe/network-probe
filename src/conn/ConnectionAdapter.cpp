@@ -28,8 +28,18 @@ int ConnectionAdapter::OnSend()
 
 int ConnectionAdapter::OnReceive(unsigned char* buffer, int length)
 {
+	if(mProto)
+	{
+		mProto->ParseData(buffer);
+	}
+
 	np_trace;
 	return 0;
+}
+
+int ConnectionAdapter::TryCreate(Connection &conn)
+{
+	return ICreate(conn);
 }
 
 int ConnectionAdapter::TryConnect(Connection &conn)
@@ -42,6 +52,11 @@ int ConnectionAdapter::TryDisconnect()
 	return IDisconnect();
 }
 
+int ConnectionAdapter::TryBind(Connection &conn)
+{
+	return IBind(conn);
+}
+
 int ConnectionAdapter::TrySend(TConnBuffer &buffer)
 {
 	return ISend(buffer);
@@ -50,4 +65,14 @@ int ConnectionAdapter::TrySend(TConnBuffer &buffer)
 int ConnectionAdapter::TryReceive(TConnBuffer &buffer)
 {
 	return IReceive(buffer);
+}
+
+int ConnectionAdapter::TrySetEvent()
+{
+	return ISetEvent();
+}
+
+int ConnectionAdapter::TrySetSocketOption(unsigned int type, int value)
+{
+	return ISetSocketOption(type, value);
 }

@@ -20,6 +20,8 @@ public:
 
 	virtual int OnSend() = 0;
 	virtual int OnReceive(unsigned char* buffer, int length) = 0;
+
+	virtual int ISetSocketOption(unsigned int type, int value) = 0;
 };
 
 

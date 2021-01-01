@@ -45,11 +45,13 @@ public:
 	}
 	virtual ~PosixSocketLib()
 	{
-
+		DelEvent();
+		close_socket();
 	}
 
 private:
 	int create_socket();
+	int create_socket(int proto_type);
 	int close_socket();
 
 	int get_socket();
@@ -60,13 +62,19 @@ private:
 	int receive_socket(unsigned char *msgBuf, int msgBufLen);
 
 public:
+	int Create(TConnection &conn);
 	int Connect(TConnection &conn);
 	int Disconnect();
+	int Bind(int port);
 	int Send(TConnBuffer &buffer);
 	int Receive(TConnBuffer &buffer);
+	int SetEvent();
+	int DelEvent();
 
 	int OnReceive();
 	void OnDisconnected();
+
+	int SetSocketOption(unsigned int type, int value);
 };
 
 class SocketMultiplexing

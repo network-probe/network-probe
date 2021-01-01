@@ -1,7 +1,9 @@
 CXXFLAGS =	-O2 -g -Wall -fmessage-length=0
 
-OBJS =		NetworkProbe.o conn/ConnectionAdapter.o conn/PosixSocketLib.o proto/NTPProtocol.o
-OBJS +=		util/Utils.o		
+OBJS =		NetworkProbe.o conn/ConnectionAdapter.o conn/PosixSocketLib.o
+OBJS +=		proto/ntp/NTPProtocol.o
+OBJS +=		proto/dhcp/DhcpProtocol.o
+OBJS +=		util/Utils.o util/Debug.o		
 
 LIBS =		-lpthread
 

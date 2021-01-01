@@ -34,7 +34,7 @@ int PosixSocketLib::create_socket()
 		close_socket();
 	}
 
-	int sock = socket(AF_INET, (mProtocolType == 0 ? SOCK_STREAM : SOCK_DGRAM), 0);
+	int sock = socket(AF_INET, (mProtocolType == CONN_TCP ? SOCK_STREAM : SOCK_DGRAM), 0);
 	if(sock < 0)
 	{
 		//error
@@ -43,6 +43,9 @@ int PosixSocketLib::create_socket()
 	}
 
 	np_print("created socket = [%d]\n", sock);
+//	NP_LOG_INFO("create socket = [%d]\n", sock);
+
+//	NP_LOG_DEBUG("abcd\n");
 
 	mSocketFD = sock;
 	return 0;
@@ -68,6 +71,12 @@ int PosixSocketLib::set_socket()
 	return 0;
 }
 
+int PosixSocketLib::create_socket(int proto_type)
+{
+	mProtocolType = proto_type;
+	return create_socket();
+}
+
 int PosixSocketLib::connect_socket(const char *address, int port, int proto_type)
 {
 	if(address == NULL || port < 0)
@@ -78,12 +87,15 @@ int PosixSocketLib::connect_socket(const char *address, int port, int proto_type
 	mPort = port;
 	mProtocolType = proto_type;
 
-	if(create_socket() < 0)
+	if(get_socket() < 0)
 	{
-		return -1;
+		if(create_socket() < 0)
+		{
+			return -1;
+		}
 	}
 
-	if(mProtocolType == 1)
+	if(mProtocolType == CONN_UDP)
 	{
 		//UDP
 		return 0;
@@ -115,7 +127,7 @@ int PosixSocketLib::send_socket(const unsigned char *msg, int msgLen)
 	if(mSocketFD <= 0)
 		return -1;
 	int sentLen = 0;
-	if(mProtocolType == 0)
+	if(mProtocolType == CONN_TCP)
 	{
 		sentLen = send(mSocketFD, msg, msgLen, 0);
 	}
@@ -128,6 +140,7 @@ int PosixSocketLib::send_socket(const unsigned char *msg, int msgLen)
 		dstAddr.sin_addr.s_addr = inet_addr(mAddress.c_str());
 		dstAddr.sin_port = htons(mPort);
 
+		fprintf(stderr, "ip = [%s], port = [%d]\n", mAddress.c_str(), mPort);
 		sentLen = sendto(mSocketFD, msg, msgLen, 0, (struct sockaddr *)&dstAddr, addr_len);
 	}
 
@@ -143,13 +156,16 @@ int PosixSocketLib::receive_socket(unsigned char *msgBuf, int msgBufLen)
 	return recvLen;
 }
 
+int PosixSocketLib::Create(TConnection &conn)
+{
+	int ret = create_socket(conn.GetConnType());
+
+	return ret;
+}
+
 int PosixSocketLib::Connect(TConnection &conn)
 {
 	int ret = connect_socket(conn.GetAddress().c_str(), conn.GetPort(), conn.GetConnType());
-	if(ret == 0)
-	{
-		SocketMultiplexing::GetInstance()->AddEvent(get_socket(), reinterpret_cast<PosixSocketLib&>(*this));
-	}
 
 	return ret;
 }
@@ -162,12 +178,36 @@ int PosixSocketLib::Disconnect()
 	return ret;
 }
 
+int PosixSocketLib::Bind(int port)
+{
+	struct sockaddr_in bind_address;
+	memset(&bind_address, 0, sizeof(bind_address));
+	bind_address.sin_family = AF_INET;
+	bind_address.sin_addr.s_addr = htonl(INADDR_ANY);
+	bind_address.sin_port = htons(port);
+
+	if (bind(mSocketFD, (struct sockaddr *) &bind_address, sizeof(bind_address)) < 0)
+	{
+		fprintf(stderr, "Bind Error, socket=[%d], port=[%d], [%s]\n", mSocketFD, port, strerror(errno));
+		return -1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 int PosixSocketLib::Send(TConnBuffer &buffer)
 {
 	int ret = send_socket(buffer.GetBuffer(), buffer.GetDataSize());
-
-//	if(mCallbackInstance)
-//		mCallbackInstance->OnSend();
+	if(ret < 0 || ret != buffer.GetDataSize())
+	{
+		fprintf(stderr, "Sent Failed = [%d], [%s]\n", ret, strerror(errno));
+	}
+	else
+	{
+		fprintf(stderr, "Sent Success\n");
+	}
 
 	return ret;
 }
@@ -179,13 +219,23 @@ int PosixSocketLib::Receive(TConnBuffer &buffer)
 	return ret;
 }
 
+int PosixSocketLib::SetEvent()
+{
+	return SocketMultiplexing::GetInstance()->AddEvent(get_socket(), reinterpret_cast<PosixSocketLib&>(*this));
+}
+
+int PosixSocketLib::DelEvent()
+{
+	return SocketMultiplexing::GetInstance()->DelEvent(get_socket());
+}
+
 int PosixSocketLib::OnReceive()
 {
 	unsigned char testBuffer[1024] = {0,};
 	int ret = receive_socket(testBuffer, 1024);
 	if(ret > 0)
 	{
-		fprintf(stderr, "Receive[%d]: %s", ret, testBuffer);
+//		fprintf(stderr, "mCallbackInstance=[%p], Receive[%d]: %s\n", mCallbackInstance, ret, testBuffer);
 		if(mCallbackInstance)
 		{
 			mCallbackInstance->OnReceive(testBuffer, ret);
@@ -203,7 +253,7 @@ int PosixSocketLib::OnReceive()
 		//Error
 	}
 
-	return 0;
+	return ret;
 }
 
 void PosixSocketLib::OnDisconnected()
@@ -211,6 +261,20 @@ void PosixSocketLib::OnDisconnected()
 	disconnect_socket();
 }
 
+int PosixSocketLib::SetSocketOption(unsigned int type, int value)
+{
+	if(type & SOCK_REUSE_OPT)
+	{
+		int on=value;
+		setsockopt(get_socket(), SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+	}
+	if(type & SOCK_BROADCAST_OPT)
+	{
+		int on=value;
+		setsockopt(get_socket(), SOL_SOCKET, SO_BROADCAST, &on, sizeof(on));
+	}
+	return 0;
+}
 
 
 SocketMultiplexing* SocketMultiplexing::mpInstance = NULL;
@@ -308,6 +372,7 @@ int SocketMultiplexing::GetPollFromEvent(void **pollStr)
 		p->fd = iter->first;
 		p->events = POLLIN;
 		p->revents = 0;
+		p++;
 	}
 
 	return mPosixSocketList.size();
@@ -330,11 +395,13 @@ void *SocketMultiplexing::PollThread(void *arg)
 	{
 		if(obj->CheckEvent() == true)
 		{
+			np_trace;
 			memset(pollSet, 0, MAX_SOCKET_POLL_SIZE);
 			curEventCount = obj->GetPollFromEvent((void **)(pollPtr));
 			obj->UpdateEvent(false);
 		}
 
+		fprintf(stderr, "[Event]: %s %s %d: curEventCount=[%d]\n", __FILE__, __FUNCTION__, __LINE__, curEventCount);
 		ret = poll(pollSet, curEventCount+1, 1000);
 		if(ret > 0)
 		{
@@ -345,10 +412,12 @@ void *SocketMultiplexing::PollThread(void *arg)
 		else if(ret == 0)
 		{
 			//Todo: Poll Timeout
+			fprintf(stderr, "[Event Timeout]: %s %s %d:\n", __FILE__, __FUNCTION__, __LINE__);
 		}
 		else
 		{
 			//Todo: Poll Error
+			fprintf(stderr, "[Event Error]: %s %s %d:\n", __FILE__, __FUNCTION__, __LINE__);
 		}
 
 		cout << "Thread Loop" << endl;

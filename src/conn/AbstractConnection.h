@@ -20,12 +20,17 @@ public:
 	AbstractConnection() : mCallbackInstance(NULL) {}
 	AbstractConnection(IConnection* connIntp) : mCallbackInstance(connIntp) {}
 	virtual ~AbstractConnection() {}
+	virtual int Create(TConnection &conn) = 0;
 	virtual int Connect(TConnection &conn) = 0;
 	virtual int Disconnect() = 0;
 	virtual int Send(TConnBuffer &buffer) = 0;
 	virtual int Receive(TConnBuffer &buffer) = 0;
+	virtual int SetEvent() = 0;
+	virtual int DelEvent() = 0;
 
 	virtual int OnReceive() = 0;
+
+	virtual int SetSocketOption(unsigned int type, int value) = 0;
 };
 
 #endif /* ABSTRACTCONNECTION_H_ */

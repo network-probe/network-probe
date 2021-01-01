@@ -19,6 +19,12 @@ typedef enum
 	CONN_UDP
 }CONNECTION_TYPE;
 
+typedef enum
+{
+	SOCK_REUSE_OPT 		= 1 << 0,
+	SOCK_BROADCAST_OPT 	= 1 << 1,
+}SOCKET_OPTION_TYPE;
+
 struct Connection
 {
 	CONNECTION_TYPE mConnType;

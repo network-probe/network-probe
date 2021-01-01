@@ -23,6 +23,10 @@ typedef unsigned long long u64;
 typedef enum
 {
 	NTP_1_XXX = 0,
+	DHCP_DISCOVERY = 10,
+	DHCP_OFFER,
+	DHCP_REQUEST,
+	DHCP_ACKNOWLEDGE,
 	MAX_PROTOCOL_CMD_COUNT
 } PROTOCOL_CMD_TYPE;
 
@@ -35,6 +39,7 @@ public:
 public:
 	virtual int MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer) = 0;
 	virtual int ParseData(unsigned char *recv_buffer) = 0;
+	virtual string GetPrettyString(void *data) = 0;
 };
 
 
