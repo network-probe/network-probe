@@ -50,7 +50,7 @@ int NTPProtocol::ParseData(unsigned char *recv_buffer)
 {
 	int ret = 0;
 
-	cout << Dump(recv_buffer) << endl;
+	cout << GetPrettyString(recv_buffer) << endl;
 
 	NTP_PROTOCOL_FORMAT* ntp_protocol = reinterpret_cast<NTP_PROTOCOL_FORMAT*>(recv_buffer);
 	ntp_protocol->transmittime_s = ntohl( ntp_protocol->transmittime_s );
@@ -64,6 +64,22 @@ int NTPProtocol::ParseData(unsigned char *recv_buffer)
 string NTPProtocol::GetPrettyString(void *data)
 {
 	stringstream ss;
+	NTP_PROTOCOL_FORMAT* protocol = reinterpret_cast<NTP_PROTOCOL_FORMAT *>(data);
+	unsigned char _leap = protocol->leap;
+	unsigned char _version = protocol->version;
+	unsigned char _mode = protocol->mode;
+	ss << "<Flags> " << "leap: " << printBits(2, &_leap) << ", version: " << printBits(3, &_version) << ", mode: " << printBits(3, &_mode) << "\n";
+	ss << "Stratum: " << printBits(8, &protocol->stratum) << ", Poll: " << printBits(8, &protocol->poll) << ", Precision: " << printBits(8, &protocol->rho) << "\n";
+	ss << "Root Delay: " << printBits(32, &protocol->delta_r) << "\n";
+	ss << "Root Dispersion: " << printBits(32, &protocol->epsilon_r) << "\n";
+	ss << "Root Reference ID: " << printBits(32, &protocol->refid) << "\n";
+
+	ss << "Reference TimeStamp: " << printBits(32, &protocol->reftime_s) << printBits(32, &protocol->reftime_f) << "\n";
+	ss << "Origin TimeStamp: " << printBits(32, &protocol->origintime_s) << printBits(32, &protocol->origintime_f) << "\n";
+	ss << "Receive TimeStamp: " << printBits(32, &protocol->receivetime_s) << printBits(32, &protocol->receivetime_f) << "\n";
+	ss << "Transmit TimeStamp: " << printBits(32, &protocol->transmittime_s) << printBits(32, &protocol->transmittime_f) << "\n";
+
+//	ss << "\nTime: " << PrintPrettyTime(protocol->transmittime_s);
 
 	return ss.str();
 }
@@ -117,29 +133,6 @@ string NTPProtocol::PacketHeaderFormat()
 	ss << "|                            dgst (128)                         |\n";
 	ss << "|                                                               |\n";
 	ss << "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n";
-
-	return ss.str();
-}
-
-string NTPProtocol::Dump(unsigned char *buffer)
-{
-	stringstream ss;
-	NTP_PROTOCOL_FORMAT* protocol = reinterpret_cast<NTP_PROTOCOL_FORMAT *>(buffer);
-	unsigned char _leap = protocol->leap;
-	unsigned char _version = protocol->version;
-	unsigned char _mode = protocol->mode;
-	ss << "<Flags> " << "leap: " << printBits(2, &_leap) << ", version: " << printBits(3, &_version) << ", mode: " << printBits(3, &_mode) << "\n";
-	ss << "Stratum: " << printBits(8, &protocol->stratum) << ", Poll: " << printBits(8, &protocol->poll) << ", Precision: " << printBits(8, &protocol->rho) << "\n";
-	ss << "Root Delay: " << printBits(32, &protocol->delta_r) << "\n";
-	ss << "Root Dispersion: " << printBits(32, &protocol->epsilon_r) << "\n";
-	ss << "Root Reference ID: " << printBits(32, &protocol->refid) << "\n";
-
-	ss << "Reference TimeStamp: " << printBits(32, &protocol->reftime_s) << printBits(32, &protocol->reftime_f) << "\n";
-	ss << "Origin TimeStamp: " << printBits(32, &protocol->origintime_s) << printBits(32, &protocol->origintime_f) << "\n";
-	ss << "Receive TimeStamp: " << printBits(32, &protocol->receivetime_s) << printBits(32, &protocol->receivetime_f) << "\n";
-	ss << "Transmit TimeStamp: " << printBits(32, &protocol->transmittime_s) << printBits(32, &protocol->transmittime_f) << "\n";
-
-//	ss << "\nTime: " << PrintPrettyTime(protocol->transmittime_s);
 
 	return ss.str();
 }

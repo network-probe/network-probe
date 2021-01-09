@@ -180,36 +180,6 @@ typedef enum DHCP_OPTIONS_T
 	DHCP_OPTION_END = 255, //	End	0 octets	Used to mark the end of the vendor option field
 }DHCP_OPTIONS;
 
-typedef struct _DHCP_PROTOCOL_FORMAT
-{
-	u8 op;
-	u8 htype;
-	u8 hlen;
-	u8 hops;
-	u32 xid;
-	u16 secs;
-	u16 flags;
-	u32 ciaddr;
-	u32 yiaddr;
-	u32 siaddr;
-	u32 giaddr;
-	u32 chaddr[4];
-	u8 bootp_options[192];
-	u32 magic_cookie;
-
-	u8 opt_1[3];
-	typedef struct _opt_2_t
-	{
-		u8 opt;
-		u8 lenght;
-		u32 identifier;
-	}__attribute__((packed)) opt_2_t;
-	opt_2_t opt_2;
-	u8 opt_3[6];
-	u8 opt_end;
-	u8 opt_padding[2];
-}__attribute__((packed)) DHCP_PROTOCOL_FORMAT;
-
 typedef struct _DHCP_PROTOCOL_CONFIG
 {
 	u8 op;
@@ -228,11 +198,11 @@ typedef struct _DHCP_PROTOCOL_CONFIG
 	u32 magic_cookie;
 }__attribute__((packed)) DHCP_PROTOCOL_CONFIG;
 
-typedef struct _DHCP_PROTOCOL_FORMAT2
+typedef struct _DHCP_PROTOCOL_FORMAT
 {
 	DHCP_PROTOCOL_CONFIG config;
 	u8 opt[512];
-}__attribute__((packed)) DHCP_PROTOCOL_FORMAT2;
+}__attribute__((packed)) DHCP_PROTOCOL_FORMAT;
 
 
 class DhcpProtocol : public AbstractProtocol

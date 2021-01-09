@@ -1,6 +1,5 @@
 #include "Debug.h"
 
-#if 0
 int Logger::NP_LOG_LEVEL_TRACE = 0;
 int Logger::NP_LOG_LEVEL_INFO = 1;
 int Logger::NP_LOG_LEVEL_DEBUG = 2;
@@ -20,9 +19,3 @@ bool Logger::IsLoggingEnabled(int level)
 		return false;
 	}
 }
-
-void Logger::LogMessage(const char *str)
-{
-//	printf("%s", str);
-}
-#endif

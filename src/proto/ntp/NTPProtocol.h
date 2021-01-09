@@ -117,7 +117,6 @@ public:
 	int MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer);
 	int ParseData(unsigned char *recv_buffer);
 	string GetPrettyString(void *data);
-	string Dump(unsigned char *buffer);
 	string PacketHeaderFormat();
 	string PrintPrettyTime(unsigned int time);
 };

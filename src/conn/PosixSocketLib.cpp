@@ -42,11 +42,7 @@ int PosixSocketLib::create_socket()
 		return -1;
 	}
 
-	np_print("created socket = [%d]\n", sock);
-//	NP_LOG_INFO("create socket = [%d]\n", sock);
-
-//	NP_LOG_DEBUG("abcd\n");
-
+	NP_LOGGER(Logger::NP_LOG_LEVEL_TRACE, "created socket = [%d]\n", sock);
 	mSocketFD = sock;
 	return 0;
 }
@@ -140,7 +136,6 @@ int PosixSocketLib::send_socket(const unsigned char *msg, int msgLen)
 		dstAddr.sin_addr.s_addr = inet_addr(mAddress.c_str());
 		dstAddr.sin_port = htons(mPort);
 
-		fprintf(stderr, "ip = [%s], port = [%d]\n", mAddress.c_str(), mPort);
 		sentLen = sendto(mSocketFD, msg, msgLen, 0, (struct sockaddr *)&dstAddr, addr_len);
 	}
 
@@ -188,7 +183,7 @@ int PosixSocketLib::Bind(int port)
 
 	if (bind(mSocketFD, (struct sockaddr *) &bind_address, sizeof(bind_address)) < 0)
 	{
-		fprintf(stderr, "Bind Error, socket=[%d], port=[%d], [%s]\n", mSocketFD, port, strerror(errno));
+		NP_LOGGER(Logger::NP_LOG_LEVEL_WARN, "Bind Error, socket=[%d], port=[%d], desc=[%s]\n", mSocketFD, port, strerror(errno));
 		return -1;
 	}
 	else
@@ -202,11 +197,11 @@ int PosixSocketLib::Send(TConnBuffer &buffer)
 	int ret = send_socket(buffer.GetBuffer(), buffer.GetDataSize());
 	if(ret < 0 || ret != buffer.GetDataSize())
 	{
-		fprintf(stderr, "Sent Failed = [%d], [%s]\n", ret, strerror(errno));
+		NP_LOGGER(Logger::NP_LOG_LEVEL_WARN, "Sent Failed, ret=[%d], desc=[%s]\n", ret, strerror(errno));
 	}
 	else
 	{
-		fprintf(stderr, "Sent Success\n");
+		NP_LOGGER(Logger::NP_LOG_LEVEL_TRACE, "Sent Success\n");
 	}
 
 	return ret;
@@ -235,7 +230,6 @@ int PosixSocketLib::OnReceive()
 	int ret = receive_socket(testBuffer, 1024);
 	if(ret > 0)
 	{
-//		fprintf(stderr, "mCallbackInstance=[%p], Receive[%d]: %s\n", mCallbackInstance, ret, testBuffer);
 		if(mCallbackInstance)
 		{
 			mCallbackInstance->OnReceive(testBuffer, ret);
@@ -244,13 +238,13 @@ int PosixSocketLib::OnReceive()
 	else if(ret == 0)
 	{
 		//Disconnected
-		fprintf(stderr, "error [%s]\n", strerror(errno));
+		NP_LOGGER(Logger::NP_LOG_LEVEL_DEBUG, "Receive Error, Desc=[%s]\n", strerror(errno));		
 		OnDisconnected();
 	}
 	else
 	{
-		fprintf(stderr, "error [%s]\n", strerror(errno));
 		//Error
+		NP_LOGGER(Logger::NP_LOG_LEVEL_DEBUG, "Receive Error, Desc=[%s]\n", strerror(errno));
 	}
 
 	return ret;
@@ -356,7 +350,7 @@ void SocketMultiplexing::OnEvent(void *pollStr, int max_count)
 			}
 			else
 			{
-				cerr << "OnEvent Error" << endl;
+				NP_LOGGER(Logger::NP_LOG_LEVEL_WARN, "OnEvent Error\n");
 			}
 		}
 	}
@@ -368,7 +362,7 @@ int SocketMultiplexing::GetPollFromEvent(void **pollStr)
 	map<int, PosixSocketLib&>::iterator iter = mPosixSocketList.begin();
 	for(; iter != mPosixSocketList.end(); ++iter)
 	{
-		np_print("fd=[%d]\n", iter->first);
+		NP_LOGGER(Logger::NP_LOG_LEVEL_TRACE, "fd=[%d]\n", iter->first);
 		p->fd = iter->first;
 		p->events = POLLIN;
 		p->revents = 0;
@@ -395,33 +389,28 @@ void *SocketMultiplexing::PollThread(void *arg)
 	{
 		if(obj->CheckEvent() == true)
 		{
-			np_trace;
 			memset(pollSet, 0, MAX_SOCKET_POLL_SIZE);
 			curEventCount = obj->GetPollFromEvent((void **)(pollPtr));
 			obj->UpdateEvent(false);
 		}
 
-		fprintf(stderr, "[Event]: %s %s %d: curEventCount=[%d]\n", __FILE__, __FUNCTION__, __LINE__, curEventCount);
 		ret = poll(pollSet, curEventCount+1, 1000);
 		if(ret > 0)
 		{
-			fprintf(stderr, "[Event]: %s %s %d:\n", __FILE__, __FUNCTION__, __LINE__);
+			NP_LOGGER(Logger::NP_LOG_LEVEL_TRACE, "Get Event\n");
 			obj->OnEvent(pollSet, curEventCount);
 			obj->UpdateEvent(true);
 		}
 		else if(ret == 0)
 		{
 			//Todo: Poll Timeout
-			fprintf(stderr, "[Event Timeout]: %s %s %d:\n", __FILE__, __FUNCTION__, __LINE__);
+			NP_LOGGER(Logger::NP_LOG_LEVEL_TRACE, "Event Timeout\n");
 		}
 		else
 		{
 			//Todo: Poll Error
-			fprintf(stderr, "[Event Error]: %s %s %d:\n", __FILE__, __FUNCTION__, __LINE__);
+			NP_LOGGER(Logger::NP_LOG_LEVEL_DEBUG, "Event Error\n");
 		}
-
-		cout << "Thread Loop" << endl;
-//		sleep(1);
 	}
 
 	return NULL;
@@ -433,6 +422,5 @@ void SocketMultiplexing::StartThread()
 	if(ret != 0)
 	{
 		//Todo
-
 	}
 }

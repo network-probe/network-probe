@@ -17,9 +17,7 @@
 //}
 //
 //ConnectionAdapter::~ConnectionAdapter()
-//{
-//
-//}
+//{ 
 
 int ConnectionAdapter::OnSend()
 {
@@ -33,7 +31,6 @@ int ConnectionAdapter::OnReceive(unsigned char* buffer, int length)
 		mProto->ParseData(buffer);
 	}
 
-	np_trace;
 	return 0;
 }
 

@@ -14,20 +14,41 @@
 #include "conn/ConnectionAdapter.h"
 #include "proto/ntp/NTPProtocol.h"
 #include "proto/dhcp/DhcpProtocol.h"
+#include "util/Debug.h"
+#include "util/Config.h"
 
 using namespace std;
 
 
 //void test_PosixSocketLib();
-void ntp_test();
-void dhcp_test();
+void ntp_test(ProtocolOption *opt);
+void dhcp_test(ProtocolOption *opt);
 
-int main(void)
+int main(int argc, char *argv[])
 {
-	cout << "Start >>>" << endl;
+	Logger::SetLogging(Logger::NP_LOG_LEVEL_TRACE);
+	// NP_LOGGER(Logger::NP_LOG_LEVEL_TRACE, "%s\n", "trace");
+	// NP_LOGGER(Logger::NP_LOG_LEVEL_INFO, "%s\n", "info");
+	// NP_LOGGER(Logger::NP_LOG_LEVEL_DEBUG, "%s\n", "debug");
+	// NP_LOGGER(Logger::NP_LOG_LEVEL_WARN, "%s\n", "warn");
+	// NP_LOGGER(Logger::NP_LOG_LEVEL_ERROR, "%s\n", "error");
+	NP_LOGGER(Logger::NP_LOG_LEVEL_INFO, "Network Probe Start >>>\n");
 
-	ntp_test();
-	dhcp_test();
+	OptionArgs::GetInstance()->ParseOptions(argc, argv);
+	vector<ProtocolOption *> parsed_protocols = OptionArgs::GetInstance()->GetOptions();
+	for(vector<ProtocolOption *>::iterator iter = parsed_protocols.begin(); iter != parsed_protocols.end(); ++iter)
+	{
+		if((*iter)->GetProtocol() == NP_PROTO_NTP)
+		{
+			ntp_test(*iter);
+		}
+		else if((*iter)->GetProtocol() == NP_PROTO_DHCP)
+		{
+			dhcp_test(*iter);
+		}
+	}
+	// ntp_test();
+	// dhcp_test();
 
 	while(1)
 	{
@@ -37,17 +58,24 @@ int main(void)
 	return EXIT_SUCCESS;
 }
 
-void ntp_test()
+void ntp_test(ProtocolOption *opt)
 {
 	ConnectionAdapter *connAdapter = new ConnectionAdapter();
 	TConnection connection;
-
+#if 0
 	connection.SetAddress(string("216.239.35.0"));
 	connection.SetPort(123);
+#else
+	if(!opt->GetAddress().empty())
+	{
+		connection.SetAddress(opt->GetAddress());
+	}
+	connection.SetPort(opt->GetPort());
+#endif
 	connection.SetConnType(CONN_UDP);
 	if(connAdapter->TryConnect(connection) < 0)
 	{
-		cerr << "Connect Socket Error" << endl;
+		NP_LOGGER(Logger::NP_LOG_LEVEL_WARN, "Connect Error, Address=[%s], Port=[%d]\n", connection.GetAddress().c_str(), connection.GetPort());
 		return;
 	}
 
@@ -58,25 +86,24 @@ void ntp_test()
 	TConnBuffer buffer(sizeof(NTP_PROTOCOL_FORMAT));
 	buffer.CopyData(reinterpret_cast<char *>(ntp_buffer), sizeof(NTP_PROTOCOL_FORMAT));
 
-	if(connAdapter->TrySend(buffer) == buffer.GetDataSize())
+	if(connAdapter->TrySend(buffer) != buffer.GetDataSize())
 	{
-		cout << "Request: " << buffer.GetBuffer() << endl;
+		NP_LOGGER(Logger::NP_LOG_LEVEL_WARN, "Send Error, Address=[%s], Port=[%d], Desc=[%s]\n", connection.GetAddress().c_str(), connection.GetPort(), strerror(errno));
 	}
 
 	buffer.ClearBuffer();
 	int recvLen = connAdapter->TryReceive(buffer);
 	if(recvLen < 0)
 	{
-		cerr << "Receive Error" << endl;
+		NP_LOGGER(Logger::NP_LOG_LEVEL_WARN, "Receive Error, Address=[%s], Port=[%d], Desc=[%s]\n", connection.GetAddress().c_str(), connection.GetPort(), strerror(errno));
 	}
-	cout << "Reply: " << buffer.GetBuffer() << endl;
 	ntp->ParseData(buffer.GetBuffer());
 
 	sleep(3);
 
 	if(connAdapter->TryDisconnect() < 0)
 	{
-		cerr << "Disconnect Socket Error" << endl;
+		NP_LOGGER(Logger::NP_LOG_LEVEL_WARN, "Disconnect Error, Address=[%s], Port=[%d], Desc=[%s]\n", connection.GetAddress().c_str(), connection.GetPort(), strerror(errno));
 	}
 
 	delete [] ntp_buffer;
@@ -84,14 +111,18 @@ void ntp_test()
 	delete connAdapter;
 }
 
-void dhcp_test()
+void dhcp_test(ProtocolOption *opt)
 {
 	DhcpProtocol *dhcp = new DhcpProtocol();
 
 	ConnectionAdapter *r_connAdapter = new ConnectionAdapter(dhcp);
 	{
 		TConnection r_connection;
+#if 0		
 		r_connection.SetPort(68);
+#else
+		r_connection.SetPort(opt->GetPort());
+#endif		
 		r_connection.SetConnType(CONN_UDP);
 
 		r_connAdapter->TryCreate(r_connection);
@@ -112,18 +143,11 @@ void dhcp_test()
 		s_connAdapter->TrySetSocketOption(SOCK_BROADCAST_OPT, 1);
 		s_connAdapter->TryConnect(s_connection);
 
-#if 0
 		unsigned char *dhcp_buffer = new unsigned char [sizeof(DHCP_PROTOCOL_FORMAT)];
-		dhcp->MakeCommand(DHCP_DISCOVERY, dhcp_buffer);
-
-		TConnBuffer buffer(sizeof(DHCP_PROTOCOL_FORMAT));
-		buffer.CopyData(reinterpret_cast<char *>(dhcp_buffer), sizeof(DHCP_PROTOCOL_FORMAT));
-#else
-		unsigned char *dhcp_buffer = new unsigned char [sizeof(DHCP_PROTOCOL_FORMAT2)];
 		int length = dhcp->MakeCommand(DHCP_DISCOVERY, dhcp_buffer);
 		TConnBuffer buffer(length);
 		buffer.CopyData(reinterpret_cast<char *>(dhcp_buffer), length);		
-#endif		
+
 		s_connAdapter->TrySend(buffer);
 	}
 

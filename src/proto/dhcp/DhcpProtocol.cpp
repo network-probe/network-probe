@@ -24,7 +24,7 @@ int DhcpProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buf
 {
 	int opt_length = 0;
 
-	DHCP_PROTOCOL_FORMAT2 *format = reinterpret_cast<DHCP_PROTOCOL_FORMAT2 *>(cmd_buffer);
+	DHCP_PROTOCOL_FORMAT *format = reinterpret_cast<DHCP_PROTOCOL_FORMAT *>(cmd_buffer);
 
 	if(cmd_type == DHCP_DISCOVERY)
 	{
@@ -53,25 +53,32 @@ int DhcpProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buf
 
 		//options
 		//-->
+		//DHCP Message Type
 		format->opt[opt_length++] = 0x35;
 		format->opt[opt_length++] = 0x01;
-		format->opt[opt_length++] = 0x01;
+		format->opt[opt_length++] = 0x01;	//Discovery
 
+		//Request IP Address
 		format->opt[opt_length++] = 0x32;
 		format->opt[opt_length++] = 0x04;
 		opt_length += 4;
 
+		//Options: Parameter Request List
 		format->opt[opt_length++] = 0x37;
-		format->opt[opt_length++] = 0x04;
-		format->opt[opt_length++] = 0x01;
-		format->opt[opt_length++] = 0x03;
-		format->opt[opt_length++] = 0x06;
-		format->opt[opt_length++] = 0x0f;
+		int length_index = opt_length;
+		{
+			opt_length++;
+			format->opt[opt_length++] = DHCP_OPTION_SUBNETMASK;
+			format->opt[opt_length++] = DHCP_OPTION_ROUTER;
+			format->opt[opt_length++] = DHCP_OPTION_DOMAINSERVER;
+			format->opt[opt_length++] = DHCP_OPTION_DOMAIN_NAME;
+			format->opt[opt_length++] = DHCP_OPTION_BROADCAST;
+		}
+		format->opt[length_index] = opt_length - length_index - 1;
 
 		format->opt[opt_length++] = 0xff;
 		format->opt[opt_length++] = 0x01;
 		format->opt[opt_length++] = 0x00;	
-		//<--
 	}
 	else if(cmd_type == DHCP_OFFER)
 	{
@@ -95,15 +102,8 @@ int DhcpProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buf
 
 int DhcpProtocol::ParseData(unsigned char *recv_buffer)
 {
-	DHCP_PROTOCOL_FORMAT *format = reinterpret_cast<DHCP_PROTOCOL_FORMAT *>(recv_buffer);
-	fprintf(stderr,  "op[%02x], htype[%02x], hlen[%02x], hops[%02x]\n", format->op, format->htype, format->hlen, format->hops);
-	fprintf(stderr,  "xid[%x], secs[%x], flags[%x]\n", format->xid, format->secs, format->flags);
-	fprintf(stderr,  "Client IP address: %s, Your (client) IP address: %s, Next server IP address: %s, Relay agent IP address: %s\n", getDottedAddress(format->ciaddr).c_str(), getDottedAddress(format->yiaddr).c_str(), getDottedAddress(format->siaddr).c_str(), getDottedAddress(format->giaddr).c_str());
-
 	int ret = 0;
-
-	cout << GetPrettyString(format);
-
+	cout << GetPrettyString(recv_buffer);
 	return ret;
 }
 
@@ -111,7 +111,7 @@ string DhcpProtocol::GetPrettyString(void *data)
 {
 	stringstream ss;
 
-	DHCP_PROTOCOL_FORMAT2 *dhcp_data = reinterpret_cast<DHCP_PROTOCOL_FORMAT2 *>(data);
+	DHCP_PROTOCOL_FORMAT *dhcp_data = reinterpret_cast<DHCP_PROTOCOL_FORMAT *>(data);
 
 	ss << "" << endl;
 	ss << "Dynamic Host Configuration Protocol (" << getDHCPMessageType(dhcp_data->opt[0]) << ")" << endl;
@@ -268,6 +268,12 @@ string DhcpProtocol::getOption(unsigned char *optr, int &offset)
 		case DHCP_OPTION_SERVER_IDENTIFIER:
 		{
 			ss << "(" << type << ")" << " DHCP Server Identifier (" << getDottedAddress(ptr) << ")";
+		}
+		break;
+
+		default:
+		{
+			ss << "(" << type << ")" << " Unknown";
 		}
 		break;
 	}
