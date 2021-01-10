@@ -47,8 +47,6 @@ int main(int argc, char *argv[])
 			dhcp_test(*iter);
 		}
 	}
-	// ntp_test();
-	// dhcp_test();
 
 	while(1)
 	{
@@ -81,7 +79,7 @@ void ntp_test(ProtocolOption *opt)
 
 	NTPProtocol *ntp = new NTPProtocol();
 	unsigned char *ntp_buffer = new unsigned char [sizeof(NTP_PROTOCOL_FORMAT)];
-	ntp->MakeCommand(NTP_1_XXX, ntp_buffer);
+	ntp->MakeCommand(NTP_1_XXX, ntp_buffer, opt);
 
 	TConnBuffer buffer(sizeof(NTP_PROTOCOL_FORMAT));
 	buffer.CopyData(reinterpret_cast<char *>(ntp_buffer), sizeof(NTP_PROTOCOL_FORMAT));
@@ -97,7 +95,7 @@ void ntp_test(ProtocolOption *opt)
 	{
 		NP_LOGGER(Logger::NP_LOG_LEVEL_WARN, "Receive Error, Address=[%s], Port=[%d], Desc=[%s]\n", connection.GetAddress().c_str(), connection.GetPort(), strerror(errno));
 	}
-	ntp->ParseData(buffer.GetBuffer());
+	ntp->ParseData(buffer.GetBuffer(), buffer.GetDataSize());
 
 	sleep(3);
 
@@ -144,11 +142,19 @@ void dhcp_test(ProtocolOption *opt)
 		s_connAdapter->TryConnect(s_connection);
 
 		unsigned char *dhcp_buffer = new unsigned char [sizeof(DHCP_PROTOCOL_FORMAT)];
-		int length = dhcp->MakeCommand(DHCP_DISCOVERY, dhcp_buffer);
+		int length = dhcp->MakeCommand(DHCP_DISCOVERY, dhcp_buffer, opt);
 		TConnBuffer buffer(length);
 		buffer.CopyData(reinterpret_cast<char *>(dhcp_buffer), length);		
-
 		s_connAdapter->TrySend(buffer);
+
+		sleep(3);
+
+		length = dhcp->MakeCommand(DHCP_REQUEST, dhcp_buffer, opt);
+		buffer.ClearBuffer();
+		buffer.CopyData(reinterpret_cast<char *>(dhcp_buffer), length);		
+		s_connAdapter->TrySend(buffer);
+
+		delete [] dhcp_buffer;
 	}
 
 	sleep(3);

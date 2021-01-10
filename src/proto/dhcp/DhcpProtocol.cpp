@@ -8,6 +8,7 @@
 
 #include "DhcpProtocol.h"
 #include <time.h>
+#include <algorithm>
 
 DhcpProtocol::DhcpProtocol()
 {
@@ -20,13 +21,13 @@ DhcpProtocol::~DhcpProtocol()
 }
 
 
-int DhcpProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer)
+int DhcpProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer, ProtocolOption *option)
 {
 	int opt_length = 0;
 
 	DHCP_PROTOCOL_FORMAT *format = reinterpret_cast<DHCP_PROTOCOL_FORMAT *>(cmd_buffer);
 
-	if(cmd_type == DHCP_DISCOVERY)
+	if(cmd_type == DHCP_DISCOVERY || cmd_type == DHCP_REQUEST)
 	{
 		format->config.op = 0x01;
 		format->config.htype = 0x01;
@@ -38,11 +39,51 @@ int DhcpProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buf
 		format->config.flags = 0x0000;
 
 		unsigned char mac[6] = {0, };
-		getMacAddress("wlp2s0", mac);
-		format->config.ciaddr = 0x00000000;
-		format->config.yiaddr = 0x00000000;
-		format->config.siaddr = 0x00000000;
-		format->config.giaddr = 0x00000000;
+		vector<string> if_names = getInterfaceNames();
+		if(!option->GetEthAddress().empty())
+		{
+			vector<string>::iterator iter = find(if_names.begin(), if_names.end(), option->GetEthAddress());
+			if(iter->empty())
+			{
+				//This is mac address, so check and set to buffer
+				int last = -1;
+    			int rc = sscanf(option->GetEthAddress().c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx%n",
+                    &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5], &last);
+
+				if(rc != 6 || (int)option->GetEthAddress().size() != last)
+				{
+					NP_LOGGER(Logger::NP_LOG_LEVEL_DEBUG, "invalid mac address format = %s\n", option->GetEthAddress().c_str());
+				}	
+			}
+			else
+			{
+				getMacAddress(option->GetEthAddress(), mac);
+			}
+		}
+		else
+		{
+			//Use First Interface
+			if(!if_names.empty())
+			{
+				getMacAddress(if_names.at(0), mac);
+			}
+		}
+
+		if(cmd_type == DHCP_DISCOVERY)
+		{
+			format->config.ciaddr = 0x00000000;
+			format->config.yiaddr = 0x00000000;
+			format->config.siaddr = 0x00000000;
+			format->config.giaddr = 0x00000000;
+		}
+		else if(cmd_type == DHCP_REQUEST)
+		{
+			format->config.ciaddr = mDhcpProto.config.yiaddr;
+			format->config.yiaddr = mDhcpProto.config.siaddr;
+			format->config.siaddr = 0x00000000;
+			format->config.giaddr = 0x00000000;
+		}
+
 
 		format->config.chaddr[0] = (unsigned int)mac[3] << 24 | (unsigned int)mac[2] << 16 | (unsigned int)mac[1] << 8 | (unsigned int)mac[0];
 		format->config.chaddr[1] = (unsigned int)mac[5] << 8 | (unsigned int)mac[4];
@@ -56,42 +97,56 @@ int DhcpProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buf
 		//DHCP Message Type
 		format->opt[opt_length++] = 0x35;
 		format->opt[opt_length++] = 0x01;
-		format->opt[opt_length++] = 0x01;	//Discovery
-
-		//Request IP Address
-		format->opt[opt_length++] = 0x32;
-		format->opt[opt_length++] = 0x04;
-		opt_length += 4;
-
-		//Options: Parameter Request List
-		format->opt[opt_length++] = 0x37;
-		int length_index = opt_length;
+		if(cmd_type == DHCP_DISCOVERY)
 		{
-			opt_length++;
-			format->opt[opt_length++] = DHCP_OPTION_SUBNETMASK;
-			format->opt[opt_length++] = DHCP_OPTION_ROUTER;
-			format->opt[opt_length++] = DHCP_OPTION_DOMAINSERVER;
-			format->opt[opt_length++] = DHCP_OPTION_DOMAIN_NAME;
-			format->opt[opt_length++] = DHCP_OPTION_BROADCAST;
+			format->opt[opt_length++] = 0x01;	//Discovery
 		}
-		format->opt[length_index] = opt_length - length_index - 1;
+		else if(cmd_type == DHCP_REQUEST)
+		{
+			format->opt[opt_length++] = 0x03;	//Request
+		}
+
+		if(cmd_type == DHCP_DISCOVERY)
+		{		
+			//Request IP Address
+			format->opt[opt_length++] = 0x32;
+			format->opt[opt_length++] = 0x04;
+			opt_length += 4;
+
+			//Options: Parameter Request List
+			format->opt[opt_length++] = 0x37;
+			int length_index = opt_length;
+			{
+				opt_length++;
+				format->opt[opt_length++] = DHCP_OPTION_SUBNETMASK;
+				format->opt[opt_length++] = DHCP_OPTION_ROUTER;
+				format->opt[opt_length++] = DHCP_OPTION_DOMAINSERVER;
+				format->opt[opt_length++] = DHCP_OPTION_DOMAIN_NAME;
+				format->opt[opt_length++] = DHCP_OPTION_BROADCAST;
+			}
+			format->opt[length_index] = opt_length - length_index - 1;
+		}
+		else if(cmd_type == DHCP_REQUEST)
+		{
+			;
+		}
 
 		format->opt[opt_length++] = 0xff;
 		format->opt[opt_length++] = 0x01;
 		format->opt[opt_length++] = 0x00;	
 	}
-	else if(cmd_type == DHCP_OFFER)
-	{
-		//server side
-	}
-	else if(cmd_type == DHCP_REQUEST)
-	{
+	// else if(cmd_type == DHCP_OFFER)
+	// {
+	// 	//server side
+	// }
+	// else if(cmd_type == DHCP_REQUEST)
+	// {
 
-	}
-	else if(cmd_type == DHCP_ACKNOWLEDGE)
-	{
-		//server side
-	}
+	// }
+	// else if(cmd_type == DHCP_ACKNOWLEDGE)
+	// {
+	// 	//server side
+	// }
 	else
 	{
 
@@ -100,9 +155,17 @@ int DhcpProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buf
 	return (sizeof(DHCP_PROTOCOL_CONFIG)+opt_length);
 }
 
-int DhcpProtocol::ParseData(unsigned char *recv_buffer)
+int DhcpProtocol::ParseData(unsigned char *recv_buffer, int recv_length)
 {
 	int ret = 0;
+	if(recv_length < (int)sizeof(DHCP_PROTOCOL_FORMAT))
+	{
+		memcpy(&mDhcpProto, recv_buffer, recv_length);
+	}
+	else
+	{
+		memcpy(&mDhcpProto, recv_buffer, sizeof(DHCP_PROTOCOL_FORMAT));
+	}
 	cout << GetPrettyString(recv_buffer);
 	return ret;
 }

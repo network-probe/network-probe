@@ -28,7 +28,7 @@ int ConnectionAdapter::OnReceive(unsigned char* buffer, int length)
 {
 	if(mProto)
 	{
-		mProto->ParseData(buffer);
+		mProto->ParseData(buffer, length);
 	}
 
 	return 0;

@@ -114,8 +114,8 @@ public:
 	NTPProtocol();
 	virtual ~NTPProtocol();
 
-	int MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer);
-	int ParseData(unsigned char *recv_buffer);
+	int MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer, ProtocolOption *option);
+	int ParseData(unsigned char *recv_buffer, int recv_length);
 	string GetPrettyString(void *data);
 	string PacketHeaderFormat();
 	string PrintPrettyTime(unsigned int time);

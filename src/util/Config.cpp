@@ -31,6 +31,11 @@ void ProtocolOption::SetPort(int port)
     mPort = port;
 }
 
+void ProtocolOption::SetEthAddress(string address)
+{
+    mEthAddress = address;
+}
+
 PROTOCOL_TYPE ProtocolOption::GetProtocol() const
 {
     return mProtoType;
@@ -44,6 +49,11 @@ std::string ProtocolOption::GetAddress() const
 int ProtocolOption::GetPort() const
 {
     return mPort;
+}
+
+string ProtocolOption::GetEthAddress() const
+{
+    return mEthAddress;
 }
 
 
@@ -122,7 +132,7 @@ int OptionArgs::ParseOptions(int _argc, char *_argv[])
         };
 
         int digit_optind = 0;
-        int c = getopt_long(_argc, _argv, "bt:a:p:012h", long_options, &option_index);
+        int c = getopt_long(_argc, _argv, "bt:a:p:e:012h", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -167,7 +177,7 @@ int OptionArgs::ParseOptions(int _argc, char *_argv[])
                 }                
                 break;
 
-            case 'a':
+            case 'a':   //ip address
                 /*
                     CheckTodo
                     SegFault...
@@ -177,10 +187,14 @@ int OptionArgs::ParseOptions(int _argc, char *_argv[])
                 SET_OPTION(proto_type, SetAddress, optarg);
                 break;
 
-            case 'p':
+            case 'p':   //port
                 // getOptionPtr(proto_type)->SetPort(atoi(optarg));
                 SET_OPTION(proto_type, SetPort, atoi(optarg));
-                break;    
+                break;
+
+            case 'e':   //ethernet address
+                SET_OPTION(proto_type, SetEthAddress, optarg);
+                break;
 
             case 'h':
                 PrintHelp();
@@ -222,7 +236,7 @@ void OptionArgs::PrintHelp()
     ss << "\t\t    [-c code]\n";
     ss << "Examples: \n";
     ss << " ntp: NetworkProbe -t ntp -a 216.239.35.0 -p 123\n";
-    ss << " dhcp: NetworkProbe -t dhcp -p 68\n";
+    ss << " dhcp: NetworkProbe -t dhcp -e eth0 -p 68\n";
 
     cout << ss.str();
 }

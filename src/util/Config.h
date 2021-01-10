@@ -22,17 +22,20 @@ public:
 
 private:
     PROTOCOL_TYPE mProtoType;
-    std::string mAddress;
+    string mAddress;
     int mPort;
+    string mEthAddress;
 
 public:
     void SetProtocol(PROTOCOL_TYPE proto);
     void SetAddress(std::string address);
     void SetPort(int port);
+    void SetEthAddress(string address);
 
     PROTOCOL_TYPE GetProtocol() const;
     std::string GetAddress() const;
     int GetPort() const;
+    string GetEthAddress() const;
 };
 
 class OptionArgs

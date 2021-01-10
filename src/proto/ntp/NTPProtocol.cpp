@@ -20,7 +20,7 @@ NTPProtocol::~NTPProtocol()
 }
 
 
-int NTPProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer)
+int NTPProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer, ProtocolOption *option)
 {
 	int ret = 0;
 #if 1
@@ -46,7 +46,7 @@ int NTPProtocol::MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buff
 	return ret;
 }
 
-int NTPProtocol::ParseData(unsigned char *recv_buffer)
+int NTPProtocol::ParseData(unsigned char *recv_buffer, int recv_length)
 {
 	int ret = 0;
 

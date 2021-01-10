@@ -1,4 +1,5 @@
 #include "Utils.h"
+#include "Debug.h"
 
 string printBits(int const size, void const * const ptr)
 {
@@ -89,6 +90,45 @@ string getDottedAddress(unsigned char *ip)
 
 	string address = format;
 	return address;
+}
+
+vector<string> getInterfaceNames()
+{
+	vector<string> names;
+
+	struct ifaddrs *ifaddr;
+
+	if (getifaddrs(&ifaddr) == -1) 
+	{
+		NP_LOGGER(Logger::NP_LOG_LEVEL_DEBUG, "Can't find network interface\n");
+	}
+	else
+	{
+		for (struct ifaddrs *ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) 
+		{
+			if (ifa->ifa_addr == NULL)
+			{
+				continue;
+			}
+	#if 0
+			int family		
+			family = ifa->ifa_addr->sa_family;
+			printf("%-8s %s (%d)\n", 
+			ifa->ifa_name,
+			(family == AF_PACKET) ? "AF_PACKET" :
+			(family == AF_INET) ? "AF_INET" :
+			(family == AF_INET6) ? "AF_INET6" : "???",
+			family);
+	#endif	
+			//except "lo"
+			if(string("lo").compare(ifa->ifa_name) != 0)
+			{
+				names.push_back(ifa->ifa_name);
+			}			
+		}
+	}
+
+	return names;
 }
 
 int charBufToInt(unsigned char *buf)

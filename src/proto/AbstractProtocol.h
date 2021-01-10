@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include "../util/Utils.h"
 #include "../util/Debug.h"
+#include "../util/Config.h"
 
 using namespace std;
 
@@ -38,8 +39,8 @@ public:
 	virtual ~AbstractProtocol() {}
 
 public:
-	virtual int MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer) = 0;
-	virtual int ParseData(unsigned char *recv_buffer) = 0;
+	virtual int MakeCommand(PROTOCOL_CMD_TYPE cmd_type, unsigned char *cmd_buffer, ProtocolOption *option) = 0;
+	virtual int ParseData(unsigned char *recv_buffer, int recv_length) = 0;
 	virtual string GetPrettyString(void *data) = 0;
 };
 
